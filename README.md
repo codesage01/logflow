@@ -32,7 +32,7 @@ go run ./cmd/server
 # Server starts on :8080
 
 ```
-![LogFlow Dashboard](./assets/dashboard.png)
+![LogFlow Dashboard](./assets/dashboardlogs.png)
 ## API
 
 ### Ingest a log
