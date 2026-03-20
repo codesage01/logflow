@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LogFlow — Real-time Log Monitor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --border: #1e2330;
+    --text: #c9d1e0;
+    --muted: #4a5568;
+    --accent: #00e5a0;
+    --debug: #6b7db3;
+    --info: #38bdf8;
+    --warn: #fbbf24;
+    --error: #f87171;
+    --fatal: #ff4d6d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+  .logo span { color: var(--accent); }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .stats-bar {
+    display: flex;
+    gap: 1px;
+    padding: 0 28px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .stat-count { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+  .stat-count.debug { color: var(--debug); }
+  .stat-count.info  { color: var(--info); }
+  .stat-count.warn  { color: var(--warn); }
+  .stat-count.error { color: var(--error); }
+  .stat-count.fatal { color: var(--fatal); }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    padding: 14px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  input, select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 12px;
+    font-family: inherit;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  .search { flex: 1; min-width: 200px; }
+
+  button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 7px 14px;
+    font-family: inherit;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.08); }
+
+  .pause-btn.paused { border-color: var(--warn); color: var(--warn); }
+
+  .log-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  .log-entry {
+    display: grid;
+    grid-template-columns: 160px 60px 120px 1fr;
+    gap: 0 16px;
+    padding: 8px 28px;
+    border-bottom: 1px solid rgba(30,35,48,0.5);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    transition: background 0.15s;
+    animation: slideIn 0.2s ease-out;
+  }
+  .log-entry:hover { background: rgba(255,255,255,0.02); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-ts   { color: var(--muted); }
+  .log-svc  { color: #7dd3fc; }
+  .log-msg  { color: var(--text); word-break: break-word; }
+
+  .badge {
+    display: inline-block;
+    font-weight: 700;
+    font-size: 0.65rem;
+    padding: 1px 0;
+    width: 48px;
+    text-align: center;
+    border-radius: 3px;
+  }
+  .badge.DEBUG { color: var(--debug); border: 1px solid var(--debug); }
+  .badge.INFO  { color: var(--info);  border: 1px solid var(--info); }
+  .badge.WARN  { color: var(--warn);  border: 1px solid var(--warn); background: rgba(251,191,36,0.07); }
+  .badge.ERROR { color: var(--error); border: 1px solid var(--error); background: rgba(248,113,113,0.07); }
+  .badge.FATAL { color: var(--fatal); border: 1px solid var(--fatal); background: rgba(255,77,109,0.12); }
+
+  .empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 2;
+  }
+  .empty .big { font-size: 2.5rem; }
+
+  .col-header {
+    display: grid;
+    grid-template-columns: 160px 60px 120px 1fr;
+    gap: 0 16px;
+    padding: 7px 28px;
+    font-size: 0.65rem;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Log<span>Flow</span></div>
+  <div class="status">
+    <div class="dot" id="dot"></div>
+    <span id="status-text">Connecting...</span>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><span class="stat-count debug" id="cnt-debug">0</span> DEBUG</div>
+  <div class="stat"><span class="stat-count info"  id="cnt-info">0</span> INFO</div>
+  <div class="stat"><span class="stat-count warn"  id="cnt-warn">0</span> WARN</div>
+  <div class="stat"><span class="stat-count error" id="cnt-error">0</span> ERROR</div>
+  <div class="stat"><span class="stat-count fatal" id="cnt-fatal">0</span> FATAL</div>
+  <div class="stat"><span class="stat-count" id="cnt-total">0</span> TOTAL</div>
+</div>
+
+<div class="toolbar">
+  <input class="search" id="search" type="text" placeholder="Search messages..." oninput="applyFilters()" />
+  <select id="filter-level" onchange="applyFilters()">
+    <option value="">All Levels</option>
+    <option>DEBUG</option><option>INFO</option>
+    <option>WARN</option><option>ERROR</option><option>FATAL</option>
+  </select>
+  <select id="filter-svc" onchange="applyFilters()">
+    <option value="">All Services</option>
+  </select>
+  <button id="pause-btn" class="pause-btn" onclick="togglePause()">⏸ Pause</button>
+  <button onclick="clearLogs()">✕ Clear</button>
+</div>
+
+<div class="col-header">
+  <span>Timestamp</span><span>Level</span><span>Service</span><span>Message</span>
+</div>
+
+<div class="log-container" id="log-container">
+  <div class="empty" id="empty-state">
+    <div class="big">📡</div>
+    Waiting for logs...<br/>
+    <small>POST to /api/logs to start ingesting</small>
+  </div>
+</div>
+
+<script>
+  let allLogs = [];
+  let paused = false;
+  let services = new Set();
+  let counts = { DEBUG:0, INFO:0, WARN:0, ERROR:0, FATAL:0 };
+
+  const container = document.getElementById('log-container');
+  const emptyState = document.getElementById('empty-state');
+
+  function connect() {
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${protocol}://${location.host}/ws`);
+
+    ws.onopen = () => {
+      document.getElementById('dot').className = 'dot live';
+      document.getElementById('status-text').textContent = 'Live';
+    };
+
+    ws.onclose = () => {
+      document.getElementById('dot').className = 'dot';
+      document.getElementById('status-text').textContent = 'Reconnecting...';
+      setTimeout(connect, 2000);
+    };
+
+    ws.onmessage = (e) => {
+      const log = JSON.parse(e.data);
+      if (paused) return;
+      addLog(log);
+    };
+  }
+
+  function addLog(log) {
+    allLogs.unshift(log);
+    if (allLogs.length > 2000) allLogs.pop();
+
+    counts[log.level] = (counts[log.level] || 0) + 1;
+    updateStats();
+
+    if (!services.has(log.service)) {
+      services.add(log.service);
+      const sel = document.getElementById('filter-svc');
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = log.service;
+      sel.appendChild(opt);
+    }
+
+    if (matchesFilter(log)) {
+      renderEntry(log, true);
+    }
+
+    emptyState.style.display = 'none';
+  }
+
+  function matchesFilter(log) {
+    const level   = document.getElementById('filter-level').value;
+    const svc     = document.getElementById('filter-svc').value;
+    const search  = document.getElementById('search').value.toLowerCase();
+    if (level  && log.level   !== level) return false;
+    if (svc    && log.service !== svc)   return false;
+    if (search && !log.message.toLowerCase().includes(search)) return false;
+    return true;
+  }
+
+  function renderEntry(log, prepend=false) {
+    const el = document.createElement('div');
+    el.className = 'log-entry';
+    const ts = new Date(log.timestamp).toLocaleTimeString('en', {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'}) +
+      '.' + String(new Date(log.timestamp).getMilliseconds()).padStart(3,'0');
+    el.innerHTML = `
+      <span class="log-ts">${ts}</span>
+      <span><span class="badge ${log.level}">${log.level}</span></span>
+      <span class="log-svc">${log.service}</span>
+      <span class="log-msg">${escHtml(log.message)}</span>
+    `;
+    if (prepend && container.firstChild !== emptyState) {
+      container.insertBefore(el, container.firstChild);
+    } else {
+      container.appendChild(el);
+    }
+  }
+
+  function applyFilters() {
+    // Remove all log entries but keep empty state
+    [...container.children].forEach(c => { if (c !== emptyState) c.remove(); });
+    const filtered = allLogs.filter(matchesFilter);
+    if (filtered.length === 0) { emptyState.style.display = ''; return; }
+    emptyState.style.display = 'none';
+    filtered.forEach(l => renderEntry(l));
+  }
+
+  function updateStats() {
+    document.getElementById('cnt-debug').textContent = counts.DEBUG || 0;
+    document.getElementById('cnt-info').textContent  = counts.INFO  || 0;
+    document.getElementById('cnt-warn').textContent  = counts.WARN  || 0;
+    document.getElementById('cnt-error').textContent = counts.ERROR || 0;
+    document.getElementById('cnt-fatal').textContent = counts.FATAL || 0;
+    document.getElementById('cnt-total').textContent = allLogs.length;
+  }
+
+  function togglePause() {
+    paused = !paused;
+    const btn = document.getElementById('pause-btn');
+    btn.textContent = paused ? '▶ Resume' : '⏸ Pause';
+    btn.classList.toggle('paused', paused);
+  }
+
+  function clearLogs() {
+    allLogs = [];
+    counts = { DEBUG:0, INFO:0, WARN:0, ERROR:0, FATAL:0 };
+    [...container.children].forEach(c => { if (c !== emptyState) c.remove(); });
+    emptyState.style.display = '';
+    updateStats();
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Load recent logs on page load
+  fetch('/api/logs?limit=100')
+    .then(r => r.json())
+    .then(logs => { if (logs) [...logs].reverse().forEach(addLog); })
+    .catch(() => {});
+
+  connect();
+</script>
+</body>
+</html>
