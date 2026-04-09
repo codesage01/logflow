@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/yourname/logflow/internal/models"
+	"github.com/codesage01/logflow/internal/models"
 )
 
 // Store defines the storage interface — swap with PostgreSQL easily
