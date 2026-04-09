@@ -38,8 +38,13 @@ func main() {
 	// Serve the frontend dashboard
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 
-	log.Printf("LogFlow server running on %s", cfg.Port)
-	if err := http.ListenAndServe(cfg.Port, mux); err != nil {
-		log.Fatal(err)
-	}
+// Ensure the port has a leading colon
+    address := ":" + cfg.Port
+    
+    log.Printf("LogFlow server running on %s", address)
+    
+    // Use the address variable which now contains ":8080"
+    if err := http.ListenAndServe(address, mux); err != nil {
+        log.Fatal(err)
+    }
 }
