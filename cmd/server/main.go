@@ -4,10 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/yourname/logflow/config"
-	"github.com/yourname/logflow/internal/handlers"
-	"github.com/yourname/logflow/internal/hub"
-	"github.com/yourname/logflow/internal/storage"
+	"github.com/codesage01/logflow/config"
+	"github.com/codesage01/logflow/internal/handlers"
+	"github.com/codesage01/logflow/internal/hub"
+	"github.com/codesage01/logflow/internal/storage"
 )
 
 func main() {
