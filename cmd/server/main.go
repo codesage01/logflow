@@ -36,7 +36,7 @@ func main() {
 	mux.HandleFunc("GET /ws", wsHandler.Handle)
 
 	// Serve the frontend dashboard
-	mux.Handle("/", http.FileServer(http.Dir("./web")))
+	mux.Handle("/", http.FileServer(http.Dir("web")))
 
 	log.Printf("LogFlow server running on %s", cfg.Port)
 	if err := http.ListenAndServe(cfg.Port, mux); err != nil {
