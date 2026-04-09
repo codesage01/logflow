@@ -1,4 +1,4 @@
-module github.com/yourname/logflow
+module github.com/codesage01/logflow
 
 go 1.22
 
