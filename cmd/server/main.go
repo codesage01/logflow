@@ -1,8 +1,7 @@
+
 package main
 
 import (
-	"embed"
-	"io/fs"
 	"log"
 	"net/http"
 
@@ -11,9 +10,6 @@ import (
 	"github.com/codesage01/logflow/internal/hub"
 	"github.com/codesage01/logflow/internal/storage"
 )
-
-//go:embed web/*
-var content embed.FS
 
 func main() {
 	cfg := config.Load()
@@ -32,20 +28,15 @@ func main() {
 	wsHandler := handlers.NewWebSocketHandler(wsHub)
 
 	// REST API routes
-	mux.HandleFunc("POST /api/logs", logHandler.Ingest)    // ingest a log
-	mux.HandleFunc("GET /api/logs", logHandler.Query)     // query logs
-	mux.HandleFunc("GET /api/logs/stats", logHandler.Stats) // get stats
+	mux.HandleFunc("POST /api/logs", logHandler.Ingest)       // ingest a log
+	mux.HandleFunc("GET /api/logs", logHandler.Query)          // query logs
+	mux.HandleFunc("GET /api/logs/stats", logHandler.Stats)    // get stats
 
 	// WebSocket route
 	mux.HandleFunc("GET /ws", wsHandler.Handle)
 
-	// Serve the frontend dashboard from embedded files
-	// We use fs.Sub to strip the "web" prefix from the embedded path
-	publicFiles, err := fs.Sub(content, "web")
-	if err != nil {
-		log.Fatal("Failed to load embedded files:", err)
-	}
-	mux.Handle("/", http.FileServer(http.FS(publicFiles)))
+	// Serve the frontend dashboard
+	mux.Handle("/", http.FileServer(http.Dir("./web")))
 
 	log.Printf("LogFlow server running on %s", cfg.Port)
 	if err := http.ListenAndServe(cfg.Port, mux); err != nil {
