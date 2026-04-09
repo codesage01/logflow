@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/yourname/logflow/internal/hub"
+	"github.com/codesage01/logflow/internal/hub"
 )
 
 var upgrader = websocket.Upgrader{
