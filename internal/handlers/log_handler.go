@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yourname/logflow/internal/hub"
-	"github.com/yourname/logflow/internal/models"
-	"github.com/yourname/logflow/internal/storage"
+	"github.com/codesage01/logflow/internal/hub"
+	"github.com/codesage01/logflow/internal/models"
+	"github.com/codesage01/logflow/internal/storage"
 )
 
 type LogHandler struct {
